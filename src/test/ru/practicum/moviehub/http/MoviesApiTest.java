@@ -12,7 +12,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -97,7 +96,7 @@ public class MoviesApiTest {
 
     @Test
     void getMovieById_whenExists_returnsMovie() throws Exception {
-        // Сначала добавляем фильм
+
         Movie movie = new Movie();
         movie.setTitle("Test Movie");
         movie.setYear(2023);
@@ -174,5 +173,117 @@ public class MoviesApiTest {
                 HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         assertEquals(404, getResponse.statusCode());
+    }
+
+    @Test
+    void getMoviesByYear_whenMoviesExist_returnsFilteredMovies() throws Exception {
+
+        Movie movie2023 = new Movie();
+        movie2023.setTitle("Movie 2023");
+        movie2023.setYear(2023);
+
+        Movie movie2024 = new Movie();
+        movie2024.setTitle("Movie 2024");
+        movie2024.setYear(2024);
+
+        String json1 = gson.toJson(movie2023);
+        String json2 = gson.toJson(movie2024);
+
+        HttpRequest postRequest1 = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/movies"))
+                .POST(HttpRequest.BodyPublishers.ofString(json1, StandardCharsets.UTF_8))
+                .header("Content-Type", "application/json")
+                .build();
+
+        HttpRequest postRequest2 = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/movies"))
+                .POST(HttpRequest.BodyPublishers.ofString(json2, StandardCharsets.UTF_8))
+                .header("Content-Type", "application/json")
+                .build();
+
+        client.send(postRequest1, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        client.send(postRequest2, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+
+        HttpRequest getRequest = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/movies?year=2023"))
+                .GET()
+                .build();
+
+        HttpResponse<String> getResponse = client.send(getRequest,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        assertEquals(200, getResponse.statusCode());
+
+        Movie[] movies = gson.fromJson(getResponse.body(), Movie[].class);
+        assertEquals(1, movies.length);
+        assertEquals("Movie 2023", movies[0].getTitle());
+        assertEquals(2023, movies[0].getYear());
+    }
+
+    @Test
+    void getMoviesByYear_whenNoMovies_returnsEmptyArray() throws Exception {
+        HttpRequest getRequest = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/movies?year=2025"))
+                .GET()
+                .build();
+
+        HttpResponse<String> getResponse = client.send(getRequest,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        assertEquals(200, getResponse.statusCode());
+
+        Movie[] movies = gson.fromJson(getResponse.body(), Movie[].class);
+        assertEquals(0, movies.length);
+    }
+
+    @Test
+    void postMovie_whenEmptyTitle_returnsValidationError() throws Exception {
+        Movie movie = new Movie();
+        movie.setTitle("");
+        movie.setYear(2023);
+
+        String json = gson.toJson(movie);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/movies"))
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .header("Content-Type", "application/json")
+                .build();
+
+        HttpResponse<String> response = client.send(request,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        assertEquals(422, response.statusCode());
+
+        String body = response.body();
+        assertTrue(body.contains("Ошибка валидации"));
+        assertTrue(body.contains("название не должно быть пустым"));
+    }
+
+    @Test
+    void getMovieById_whenNotFound_returns404() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/movies/999"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        assertEquals(404, response.statusCode());
+    }
+
+    @Test
+    void getMovieById_whenInvalidId_returns400() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/movies/abc"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        assertEquals(400, response.statusCode());
     }
 }
