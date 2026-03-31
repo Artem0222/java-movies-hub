@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class MoviesHandler extends BaseHttpHandler {
+    private static final int MIN_YEAR = 1888;
+    private static final int MAX_TITLE_LENGTH = 100;
     private final MoviesStore store;
 
     public MoviesHandler(MoviesStore store) {
@@ -65,7 +67,7 @@ public class MoviesHandler extends BaseHttpHandler {
                 if (movie.isPresent()) {
                     sendJson(ex, 200, movie.get());
                 } else {
-                    sendNotFound(ex, "Фильм не найден");
+                    sendNotFound(ex, "Фильм " + id + " не найден");
                 }
             } catch (NumberFormatException e) {
 
@@ -130,11 +132,11 @@ public class MoviesHandler extends BaseHttpHandler {
                 if (deleted.isPresent()) {
                     sendNoContent(ex);
                 } else {
-                    sendNotFound(ex, "Фильм не найден");
+                    sendNotFound(ex, "Фильм " + id +  " не найден");
                 }
             } catch (NumberFormatException e) {
 
-                sendBadRequest(ex, "Некорректный ID");
+                sendBadRequest(ex, "Некорректный ID: " + idStr);
             }
             return;
         }
@@ -153,14 +155,14 @@ public class MoviesHandler extends BaseHttpHandler {
 
         if (movie.getTitle() == null || movie.getTitle().trim().isEmpty()) {
             errors.add("название не должно быть пустым");
-        } else if (movie.getTitle().length() > 100) {
-            errors.add("название не должно превышать 100 символов");
+        } else if (movie.getTitle().length() > MAX_TITLE_LENGTH) {
+            errors.add("название не должно превышать " + MAX_TITLE_LENGTH + "символов");
         }
 
 
         int currentYear = java.time.Year.now().getValue();
-        if (movie.getYear() < 1888 || movie.getYear() > currentYear + 1) {
-            errors.add("год должен быть между 1888 и " + (currentYear + 1));
+        if (movie.getYear() < MIN_YEAR || movie.getYear() > currentYear + 1) {
+            errors.add("год должен быть между " + MIN_YEAR + "и " + (currentYear + 1));
         }
 
         return errors;
