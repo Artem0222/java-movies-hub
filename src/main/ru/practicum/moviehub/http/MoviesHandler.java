@@ -6,7 +6,6 @@ import ru.practicum.moviehub.model.Movie;
 import ru.practicum.moviehub.store.MoviesStore;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -41,6 +40,7 @@ public class MoviesHandler extends BaseHttpHandler {
     private void handleGet(HttpExchange ex) throws IOException {
         String query = ex.getRequestURI().getQuery();
         String path = ex.getRequestURI().getPath();
+
 
         if (query != null && query.startsWith("year=")) {
             handleGetByYear(ex, query);
