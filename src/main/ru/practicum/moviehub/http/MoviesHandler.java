@@ -56,13 +56,20 @@ public class MoviesHandler extends BaseHttpHandler {
 
 
         String[] parts = path.split("/");
-        if (parts.length == 3 && parts[2].matches("\\d+")) {
-            int id = Integer.parseInt(parts[2]);
-            Optional<Movie> movie = store.getMovieById(id);
-            if (movie.isPresent()) {
-                sendJson(ex, 200, movie.get());
-            } else {
-                sendNotFound(ex, "Фильм не найден");
+        if (parts.length == 3) {
+            String idStr = parts[2];
+
+            try {
+                int id = Integer.parseInt(idStr);
+                Optional<Movie> movie = store.getMovieById(id);
+                if (movie.isPresent()) {
+                    sendJson(ex, 200, movie.get());
+                } else {
+                    sendNotFound(ex, "Фильм не найден");
+                }
+            } catch (NumberFormatException e) {
+
+                sendBadRequest(ex, "Некорректный ID");
             }
             return;
         }
@@ -114,17 +121,25 @@ public class MoviesHandler extends BaseHttpHandler {
         String path = ex.getRequestURI().getPath();
         String[] parts = path.split("/");
 
-        if (parts.length == 3 && parts[2].matches("\\d+")) {
-            int id = Integer.parseInt(parts[2]);
-            Optional<Movie> deleted = store.deleteMovie(id);
-            if (deleted.isPresent()) {
-                sendNoContent(ex);
-            } else {
-                sendNotFound(ex, "Фильм не найден");
+        if (parts.length == 3) {
+            String idStr = parts[2];
+
+            try {
+                int id = Integer.parseInt(idStr);
+                Optional<Movie> deleted = store.deleteMovie(id);
+                if (deleted.isPresent()) {
+                    sendNoContent(ex);
+                } else {
+                    sendNotFound(ex, "Фильм не найден");
+                }
+            } catch (NumberFormatException e) {
+
+                sendBadRequest(ex, "Некорректный ID");
             }
-        } else {
-            sendBadRequest(ex, "Некорректный ID");
+            return;
         }
+
+        sendBadRequest(ex, "Некорректный ID");
     }
 
     private List<String> validateMovie(Movie movie) {
